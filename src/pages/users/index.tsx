@@ -1,76 +1,58 @@
 "use client";
 
-import apiClient from "@lib/apiClient";
-import { useEffect, useState } from "react";
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
+import {
+  useFetchData,
+  usePostData,
+  usePutData,
+  useDeleteData,
+} from "@lib/useFetchData";
 
 export default function UserScreen() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
+  const { data, error, isLoading } = useFetchData("/api/endpoint");
+  const postMutation = usePostData("/api/endpoint");
+  const putMutation = usePutData("/api/endpoint");
+  const deleteMutation = useDeleteData("/api/endpoint");
 
-  useEffect(() => {
-    async function fetchUsers() {
-      try {
-        const data = await apiClient.get<User[]>("/api/users");
-        setUsers(data);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      }
-    }
-
-    fetchUsers();
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const data = await apiClient.post<User>("/api/users", {
-        name,
-        email,
-      });
-      setMessage(`User ${data.name} created successfully!`);
-      setName("");
-      setEmail("");
-    } catch (error) {
-      console.error("Error creating user:", error);
-      setMessage("Error creating user");
-    }
+  const handlePost = () => {
+    postMutation.mutate({ key: "value" });
   };
+
+  const handlePut = () => {
+    putMutation.mutate({ key: "updatedValue" });
+  };
+
+  const handleDelete = () => {
+    deleteMutation.mutate();
+  };
+
+  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>An error occurred: {error.message}</p>;
 
   return (
     <div>
-      <h2>Create a new user</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Name"
-          required
-        />
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          required
-        />
-        <button type="submit">Create User</button>
-      </form>
-      {message && <p>{message}</p>}
-      <div className="flex flex-col">
-        {users.map((item) => (
-          <div key={item.id}>{item.name}</div>
-        ))}
-      </div>
+      <h1>Data:</h1>
+      <pre>{JSON.stringify(data, null, 2)}</pre>
+      <button onClick={handlePost} disabled={postMutation.isPending}>
+        Post Data
+      </button>
+      <button onClick={handlePut} disabled={putMutation.isPending}>
+        Put Data
+      </button>
+      <button onClick={handleDelete} disabled={deleteMutation.isPending}>
+        Delete Data
+      </button>
+      {postMutation.isError && (
+        <p>An error occurred: {postMutation.error.message}</p>
+      )}
+      {postMutation.isSuccess && <p>Data posted successfully!</p>}
+      {putMutation.isError && (
+        <p>An error occurred: {putMutation.error.message}</p>
+      )}
+      {putMutation.isSuccess && <p>Data updated successfully!</p>}
+      {deleteMutation.isError && (
+        <p>An error occurred: {deleteMutation.error.message}</p>
+      )}
+      {deleteMutation.isSuccess && <p>Data deleted successfully!</p>}
     </div>
   );
 }
